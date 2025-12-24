@@ -9,8 +9,8 @@
             margin: 0; 
             overflow: hidden; 
             font-family: 'Arial Rounded MT Bold', 'Arial', sans-serif;
-            /* 温馨的渐变背景：从深红到午夜蓝 */
-            background: radial-gradient(circle at center bottom, #551a2a 0%, #0f0c29 100%);
+            /* 修改：更亮的渐变背景，营造节日夜晚的通透感 */
+            background: radial-gradient(circle at center bottom, #882233 0%, #2a0a1a 40%, #050510 100%);
         }
         
         #ui-container {
@@ -23,7 +23,8 @@
             font-size: 3em; 
             font-weight: bold;
             color: #fff;
-            text-shadow: 0 0 10px #ff6600, 0 0 20px #ffcc00;
+            /* 文字辉光增强 */
+            text-shadow: 0 0 10px #ffaa00, 0 0 20px #ff6600, 0 0 30px #ff0000;
             pointer-events: auto;
             margin-bottom: 20px;
             animation: bounce 2s infinite ease-in-out;
@@ -31,19 +32,20 @@
         
         #slider-container {
             pointer-events: auto;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 10px 20px;
-            border-radius: 30px;
-            backdrop-filter: blur(5px);
-            display: flex; align-items: center; gap: 10px;
-            color: white; font-size: 0.9em;
+            background: rgba(255, 255, 255, 0.25); /* 背景更亮一点 */
+            padding: 15px 30px;
+            border-radius: 50px;
+            backdrop-filter: blur(8px);
+            display: flex; align-items: center; gap: 15px;
+            color: white; font-size: 1.1em; text-shadow: 0 1px 2px black;
+            border: 1px solid rgba(255,255,255,0.3);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
 
         input[type=range] {
-            width: 200px; cursor: pointer;
+            width: 200px; cursor: pointer; accent-color: #ffaa00;
         }
 
-        /* 简单的跳动动画 */
         @keyframes bounce {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-10px); }
@@ -52,12 +54,14 @@
         #loading {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             color: white; font-size: 1.5em; pointer-events: none;
+            text-shadow: 0 0 10px black;
         }
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/tween.min.js"></script>
+    
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
@@ -67,42 +71,49 @@
 </head>
 <body>
 
-    <div id="loading">正在打包礼物... 🎁</div>
+    <div id="loading">正在挂上照片 (5张)... 📸</div>
 
     <div id="ui-container">
-        <div id="greeting" contenteditable="true">Merry Christmas, NN! 🎄</div>
+        <div id="greeting" contenteditable="true">Merry Christmas! 🎄</div>
         
         <div id="slider-container">
-            <span>🕯️ 温馨</span>
+            <span>🕯️ 氛围</span>
             <input type="range" id="brightnessSlider" min="0.5" max="3.0" step="0.1" value="1.5">
-            <span>✨ 闪耀</span>
+            <span>☀️ 明亮</span>
         </div>
     </div>
 
     <script>
         // --- 1. 配置区域 ---
-        const imageFiles = ['./1.jpg', './2.jpg', './3.jpg']; // 你的照片
-        const EMOJIS = ['🎁', '🦌', '🍬', '🔔', '❄️', '⛄', '🎄']; // 装饰元素
+        // 修改：支持5张图片，文件名请确保是 1.jpg 到 5.jpg (或者 png)
+        const imageFiles = ['./1.jpg', './2.jpg', './3.jpg', './4.jpg', './5.jpg']; 
+        
+        const EMOJIS = ['🎁', '🦌', '🍬', '🔔', '❄️', '⛄', '🎄', '🧸', '🍪'];
 
         let scene, camera, renderer, composer, controls;
         let particleTree, lights = [];
         let bloomPass;
+        
+        // 全局变量存储照片组，方便动画
+        window.photoCards = new THREE.Group();
 
         function init() {
             // 场景
             scene = new THREE.Scene();
-            // 不设置 scene.background，让 CSS 的渐变背景透出来 (或者混合一点雾)
-            scene.fog = new THREE.FogExp2(0x2a0a1a, 0.002); 
+            // 雾气调得更透亮，不再是黑色雾
+            scene.fog = new THREE.FogExp2(0x442233, 0.001); 
 
             // 相机
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 50, 180);
+            camera.position.set(0, 60, 200);
 
             // 渲染器
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); // alpha: true 让背景透明
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.toneMapping = THREE.ReinhardToneMapping;
+            // 修改：移除 ReinhardToneMapping，改用 Linear，这样更亮，不会压暗高光
+            renderer.toneMapping = THREE.LinearToneMapping; 
+            renderer.toneMappingExposure = 1.1; // 默认曝光度调高
             document.body.appendChild(renderer.domElement);
 
             // 控制器
@@ -112,37 +123,42 @@
             controls.autoRotateSpeed = 0.8;
             controls.maxPolarAngle = Math.PI / 2 - 0.1;
 
-            // --- 2. 灯光 (高亮暖色) ---
-            const ambientLight = new THREE.AmbientLight(0xffccaa, 0.6); // 暖白环境光
+            // --- 2. 灯光系统 (大幅增强) ---
+            const ambientLight = new THREE.AmbientLight(0xffeedd, 1.2); // 强度由 0.6 提至 1.2
             scene.add(ambientLight);
+            lights.push(ambientLight);
 
-            // 核心主光源 (树中心)
-            const mainLight = new THREE.PointLight(0xffaa00, 1.5, 300);
-            mainLight.position.set(0, 80, 0);
+            // 核心主光源
+            const mainLight = new THREE.PointLight(0xffaa00, 2.5, 500); // 强度提至 2.5
+            mainLight.position.set(0, 80, 20); // 稍微靠前一点，照亮照片
             scene.add(mainLight);
             lights.push(mainLight);
 
-            // 补光 (让照片亮一点)
-            const frontLight = new THREE.DirectionalLight(0xffeecc, 0.8);
-            frontLight.position.set(0, 50, 200);
-            scene.add(frontLight);
-            lights.push(frontLight);
+            // 补光 (照亮背面和侧面)
+            const fillLight = new THREE.DirectionalLight(0xccccff, 1.0);
+            fillLight.position.set(0, 50, 200);
+            scene.add(fillLight);
+            lights.push(fillLight);
 
-            // --- 3. 圣诞树 (粒子版) ---
+            // --- 3. 圣诞树 ---
             createFluffyTree();
             
-            // --- 4. 装饰品 (Emoji) ---
+            // --- 4. 装饰品 (Emoji 变大) ---
             addDecorations();
 
-            // --- 5. 照片 (三足鼎立) ---
+            // --- 5. 照片 (5张 + 原比例) ---
             addFeaturedPhotos();
+            scene.add(window.photoCards);
 
             // --- 6. 后期处理 (Bloom) ---
             const renderScene = new THREE.RenderPass(scene, camera);
+            
+            // 辉光参数微调，让它亮而不糊
             bloomPass = new THREE.UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                1.2, 0.4, 0.85
+                1.0, 0.5, 0.7 
             );
+            
             composer = new THREE.EffectComposer(renderer);
             composer.addPass(renderScene);
             composer.addPass(bloomPass);
@@ -150,34 +166,43 @@
             // 移除 Loading
             document.getElementById('loading').style.display = 'none';
             
-            // 绑定滑块事件
-            document.getElementById('brightnessSlider').addEventListener('input', (e) => {
+            // --- 7. 滑块逻辑修正 (确保有用) ---
+            const slider = document.getElementById('brightnessSlider');
+            slider.addEventListener('input', (e) => {
                 const val = parseFloat(e.target.value);
-                // 调节光照强度
-                mainLight.intensity = val;
-                frontLight.intensity = val * 0.5;
-                // 调节辉光强度
-                bloomPass.strength = val * 0.8;
+                
+                // 1. 调节灯光强度
+                mainLight.intensity = val * 1.5;
+                ambientLight.intensity = val * 0.8;
+                fillLight.intensity = val * 0.6;
+                
+                // 2. 调节整体曝光度 (这是变亮的关键)
+                renderer.toneMappingExposure = val * 0.8;
+
+                // 3. 调节辉光
+                bloomPass.strength = val * 0.7;
             });
+            
+            // 初始化触发一次，确保亮度和滑块一致
+            slider.dispatchEvent(new Event('input'));
 
             animate();
         }
 
         // --- 创建毛茸茸的粒子树 ---
         function createFluffyTree() {
-            const count = 3000;
+            const count = 3500; // 增加粒子数
             const geometry = new THREE.BufferGeometry();
             const positions = [];
             const colors = [];
 
-            const color1 = new THREE.Color(0x0f5c2e); // 深绿
-            const color2 = new THREE.Color(0x4dc06b); // 嫩绿
+            const color1 = new THREE.Color(0x228b22); // 森林绿
+            const color2 = new THREE.Color(0x76ff03); // 荧光绿 (更亮)
 
             for(let i=0; i<count; i++) {
-                const y = Math.random() * 160;
-                const progress = 1 - (y / 160);
-                // 底部胖，顶部尖，增加一点随机扩散让它蓬松
-                const radius = (10 + progress * 60) + (Math.random() - 0.5) * 10; 
+                const y = Math.random() * 170;
+                const progress = 1 - (y / 170);
+                const radius = (15 + progress * 65) + (Math.random() - 0.5) * 15; 
                 const angle = Math.random() * Math.PI * 2;
 
                 const x = Math.cos(angle) * radius;
@@ -185,23 +210,21 @@
                 
                 positions.push(x, y, z);
 
-                // 颜色混杂
-                const color = Math.random() > 0.5 ? color1 : color2;
+                const color = Math.random() > 0.4 ? color1 : color2;
                 colors.push(color.r, color.g, color.b);
             }
 
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
             geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
-            // 生成一个柔和的圆形纹理
             const spriteMap = createSoftParticleTexture();
 
             const material = new THREE.PointsMaterial({
-                size: 3.5, // 大粒子
+                size: 4.0, // 粒子变大
                 map: spriteMap,
                 vertexColors: true,
                 transparent: true,
-                opacity: 0.9,
+                opacity: 0.95, // 不透明度增加
                 depthWrite: false,
                 blending: THREE.AdditiveBlending
             });
@@ -210,22 +233,20 @@
             scene.add(particleTree);
         }
 
-        // --- 添加 Emoji 装饰 ---
+        // --- 添加 Emoji 装饰 (变大) ---
         function addDecorations() {
             const group = new THREE.Group();
-            const count = 300; // 装饰物数量
+            const count = 400; // 数量增加
 
             for (let i = 0; i < count; i++) {
-                // 随机选一个 Emoji
                 const emoji = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
                 const map = createEmojiTexture(emoji);
                 const material = new THREE.SpriteMaterial({ map: map, transparent: true });
                 const sprite = new THREE.Sprite(material);
 
-                // 随机分布在树表面
-                const y = Math.random() * 150;
-                const progress = 1 - (y / 150);
-                const radius = (15 + progress * 55); 
+                const y = Math.random() * 160;
+                const progress = 1 - (y / 160);
+                const radius = (20 + progress * 60); 
                 const angle = Math.random() * Math.PI * 2;
 
                 sprite.position.set(
@@ -234,11 +255,10 @@
                     Math.sin(angle) * radius
                 );
                 
-                // 大小随机
-                const scale = 4 + Math.random() * 3;
+                // 修改：尺寸变大 (原 4-7 -> 现 7-11)
+                const scale = 7 + Math.random() * 4;
                 sprite.scale.set(scale, scale, 1);
                 
-                // 给每个装饰物一点独立的摆动参数
                 sprite.userData = {
                     offset: Math.random() * 100,
                     speed: 0.02 + Math.random() * 0.02
@@ -250,74 +270,82 @@
             window.decorations = group;
         }
 
-        // --- 添加三张特写照片 (非螺旋) ---
+        // --- 添加 5 张原比例照片 ---
         function addFeaturedPhotos() {
             const loader = new THREE.TextureLoader();
-            const geometry = new THREE.PlaneGeometry(20, 26); // 大尺寸
             
-            // 定义三个固定位置：[x, y, z]
-            // 1. 左前方
-            // 2. 右前方
-            // 3. 顶端正中
+            // 5个固定点位 (前左, 前右, 后左, 后右, 顶中)
+            // 确保照片分布在树的四周，不会挤在一起
             const configs = [
-                { pos: [-35, 40, 35], rot: [0, Math.PI/4, 0], file: imageFiles[0] },
-                { pos: [35, 40, 35], rot: [0, -Math.PI/4, 0], file: imageFiles[1] },
-                { pos: [0, 110, 20], rot: [0, 0, 0], file: imageFiles[2] } 
+                { file: imageFiles[0], pos: [-40, 40, 40], rot: [0, Math.PI/4, 0] },
+                { file: imageFiles[1], pos: [40, 40, 40], rot: [0, -Math.PI/4, 0] },
+                { file: imageFiles[2], pos: [0, 90, 35], rot: [0, 0, 0] }, // 中间偏上
+                { file: imageFiles[3], pos: [-35, 120, 0], rot: [0, 0, 0] }, // 更高
+                { file: imageFiles[4], pos: [35, 70, -35], rot: [0, Math.PI, 0] } // 背面一张
             ];
 
-            const group = new THREE.Group();
-
             configs.forEach((cfg) => {
-                // 边框材质 (发光白)
-                const borderMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-                const borderGeo = new THREE.PlaneGeometry(22, 28);
-                const border = new THREE.Mesh(borderGeo, borderMat);
-                border.position.z = -0.1; // 放在后面一点点
-
-                // 照片材质
-                const photoMat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
-                const photo = new THREE.Mesh(geometry, photoMat);
-                
-                // 组合成一个拍立得对象
-                const card = new THREE.Group();
-                card.add(border);
-                card.add(photo);
-
-                card.position.set(...cfg.pos);
-                card.rotation.set(...cfg.rot);
-                
-                // 缓慢的悬浮动画参数
-                card.userData = {
-                    originalY: cfg.pos[1],
-                    offset: Math.random() * 100
-                };
-
+                // 使用回调函数，获取图片宽高，计算比例
                 loader.load(cfg.file, (tex) => {
-                    photoMat.map = tex;
-                    photoMat.needsUpdate = true;
+                    const img = tex.image;
+                    const aspect = img.width / img.height;
+                    
+                    // 设定基准宽度，比如 20
+                    const baseWidth = 22;
+                    const baseHeight = baseWidth / aspect;
+
+                    // 1. 照片 Mesh
+                    const photoGeo = new THREE.PlaneGeometry(1, 1); // 使用 1x1 几何体，靠 scale 调整
+                    const photoMat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+                    const photo = new THREE.Mesh(photoGeo, photoMat);
+                    photo.scale.set(baseWidth, baseHeight, 1);
+                    photo.position.z = 0.1; // 防止重叠
+
+                    // 2. 边框 (拍立得风格)
+                    // 边框比照片宽一点，底部留多一点空白
+                    const borderGeo = new THREE.PlaneGeometry(1, 1);
+                    const borderMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+                    const border = new THREE.Mesh(borderGeo, borderMat);
+                    
+                    const padding = 2;
+                    const bottomPadding = 6; // 底部留白
+                    border.scale.set(baseWidth + padding*2, baseHeight + padding + bottomPadding, 1);
+                    // 边框中心需要下移，以适应底部留白
+                    border.position.y = - (bottomPadding - padding) / 2;
+
+                    // 组合
+                    const card = new THREE.Group();
+                    card.add(border);
+                    card.add(photo);
+
+                    // 设置整体位置
+                    card.position.set(...cfg.pos);
+                    // 如果图片没加载出来，可能会报错，所以加个保护
+                    if (cfg.rot) card.rotation.set(...cfg.rot);
+
+                    // 浮动参数
+                    card.userData = {
+                        originalY: cfg.pos[1],
+                        offset: Math.random() * 100
+                    };
+
+                    window.photoCards.add(card);
                 });
-
-                group.add(card);
             });
-
-            scene.add(group);
-            window.photoCards = group;
         }
 
-        // --- 辅助工具：画 Emoji 贴图 ---
+        // --- 辅助工具 ---
         function createEmojiTexture(emoji) {
             const canvas = document.createElement('canvas');
             canvas.width = 128; canvas.height = 128;
             const ctx = canvas.getContext('2d');
-            ctx.font = '100px Arial';
+            ctx.font = '100px Arial'; // 字体改大
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(emoji, 64, 64);
-            const tex = new THREE.CanvasTexture(canvas);
-            return tex;
+            return new THREE.CanvasTexture(canvas);
         }
 
-        // --- 辅助工具：画柔和粒子 ---
         function createSoftParticleTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 32; canvas.height = 32;
@@ -336,23 +364,22 @@
             const time = performance.now() * 0.001;
             controls.update();
 
-            // 1. 装饰物上下浮动
+            // 装饰物浮动
             if (window.decorations) {
                 window.decorations.children.forEach(sprite => {
                     sprite.position.y += Math.sin(time * 2 + sprite.userData.offset) * 0.1;
                 });
             }
 
-            // 2. 照片卡片缓慢悬浮 + 面向摄像机微调
+            // 照片卡片浮动 + 面向观众
             if (window.photoCards) {
                 window.photoCards.children.forEach(card => {
-                    card.position.y = card.userData.originalY + Math.sin(time + card.userData.offset) * 0.5;
-                    // 让照片始终有一点点朝向观众，但保持大致位置
-                    card.lookAt(camera.position);
+                    card.position.y = card.userData.originalY + Math.sin(time + card.userData.offset) * 0.3;
+                    card.lookAt(camera.position); // 始终朝向摄像机
                 });
             }
 
-            // 3. 树整体微旋
+            // 树自转
             if (particleTree) {
                 particleTree.rotation.y = time * 0.05;
                 if (window.decorations) window.decorations.rotation.y = time * 0.05;
