@@ -95,10 +95,10 @@
 </head>
 <body>
 
-    <div id="loading">✨ 正在堆雪人...</div>
+    <div id="loading">✨ 正在点亮星空...</div>
 
     <div id="ui-container">
-        <div id="greeting" contenteditable="true">Merry Christmas, shinini!</div>
+        <div id="greeting" contenteditable="true">Merry Christmas, NN!</div>
         
         <div class="controls-row">
             <div class="glass-panel">
@@ -176,9 +176,9 @@
             addDecorations();
             addFeaturedPhotos();
 
-            // --- 新增：环境角色 ---
+            // --- 环境角色 ---
             createSnowman(); // 3D 雪人
-            createCharacterSprites(); // 圣诞老人和驯鹿
+            createCharacterSprites(); // 驯鹿 (圣诞老人已删除)
 
             scene.add(window.photoCards);
 
@@ -242,7 +242,6 @@
                                     texture.needsUpdate = true;
                                     
                                     // 找到当前卡片里的 Photo Mesh (它是 Group 的第 2 个子元素，索引 1)
-                                    // 结构: Group -> [Border(0), Photo(1)]
                                     const cardGroup = cards[index];
                                     const photoMesh = cardGroup.children[1];
                                     const borderMesh = cardGroup.children[0];
@@ -276,36 +275,31 @@
             });
         }
 
-        // --- 新增功能：3D 雪人 (纯代码生成) ---
+        // --- 3D 雪人 ---
         function createSnowman() {
             const snowman = new THREE.Group();
             
-            // 材质：白色，稍微粗糙，像雪
             const snowMat = new THREE.MeshStandardMaterial({ 
                 color: 0xffffff, roughness: 0.8, metalness: 0.1 
             });
             const coalMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
-            const noseMat = new THREE.MeshStandardMaterial({ color: 0xffa500 }); // 橙色鼻子
+            const noseMat = new THREE.MeshStandardMaterial({ color: 0xffa500 });
             
-            // 1. 身体 (底座)
             const body = new THREE.Mesh(new THREE.SphereGeometry(14, 32, 32), snowMat);
             body.position.y = 10;
             body.castShadow = true; body.receiveShadow = true;
             snowman.add(body);
 
-            // 2. 身体 (中间)
             const torso = new THREE.Mesh(new THREE.SphereGeometry(10, 32, 32), snowMat);
             torso.position.y = 28;
             torso.castShadow = true; torso.receiveShadow = true;
             snowman.add(torso);
 
-            // 3. 头
             const head = new THREE.Mesh(new THREE.SphereGeometry(7, 32, 32), snowMat);
             head.position.y = 42;
             head.castShadow = true; head.receiveShadow = true;
             snowman.add(head);
 
-            // 4. 眼睛
             const eyeGeo = new THREE.SphereGeometry(1, 16, 16);
             const eyeL = new THREE.Mesh(eyeGeo, coalMat);
             eyeL.position.set(-2, 44, 6);
@@ -313,55 +307,50 @@
             eyeR.position.set(2, 44, 6);
             snowman.add(eyeL); snowman.add(eyeR);
 
-            // 5. 鼻子 (圆锥)
             const noseGeo = new THREE.ConeGeometry(1.5, 6, 32);
             const nose = new THREE.Mesh(noseGeo, noseMat);
             nose.rotation.x = Math.PI / 2;
             nose.position.set(0, 42, 9);
             snowman.add(nose);
 
-            // 6. 红色围巾
             const scarfMat = new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 1.0 });
             const scarf = new THREE.Mesh(new THREE.TorusGeometry(7.5, 1.5, 16, 30), scarfMat);
             scarf.rotation.x = Math.PI / 2;
             scarf.position.set(0, 36, 0);
             snowman.add(scarf);
 
-            // 放置位置：树的左侧
             snowman.position.set(-60, -20, 40);
-            snowman.rotation.y = 0.5; // 面向观众
+            snowman.rotation.y = 0.5;
 
             scene.add(snowman);
         }
 
-        // --- 新增功能：环境角色 (圣诞老人 & 驯鹿) ---
+        // --- 环境角色 (仅保留驯鹿) ---
         function createCharacterSprites() {
-            // 使用 Emoji 绘制大贴图
-            const santaMap = createEmojiTexture('🎅');
+            // 删除圣诞老人相关代码
+            // const santaMap = createEmojiTexture('🎅');
             const deerMap = createEmojiTexture('🦌');
 
-            const santaMat = new THREE.SpriteMaterial({ map: santaMap, transparent: true });
+            // const santaMat = new THREE.SpriteMaterial({ map: santaMap, transparent: true });
             const deerMat = new THREE.SpriteMaterial({ map: deerMap, transparent: true });
 
-            const santa = new THREE.Sprite(santaMat);
+            // const santa = new THREE.Sprite(santaMat);
             const deer = new THREE.Sprite(deerMat);
 
-            // 设置大小
-            santa.scale.set(40, 40, 1);
+            // santa.scale.set(40, 40, 1);
             deer.scale.set(35, 35, 1);
 
-            // 放置位置：右侧和后方
-            santa.position.set(60, 0, 30); // 稍微离地一点
+            // santa.position.set(60, 0, 30);
             deer.position.set(30, -5, -50); 
 
-            // 简单的浮动动画 ID
-            santa.userData = { id: 'santa' };
+            // santa.userData = { id: 'santa' };
             deer.userData = { id: 'deer' };
 
-            scene.add(santa);
+            // scene.add(santa);
             scene.add(deer);
             
-            window.characters = [santa, deer];
+            // 仅保留驯鹿在数组中
+            window.characters = [deer];
         }
 
         // --- 核心：星空 ---
