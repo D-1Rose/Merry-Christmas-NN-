@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merry Christmas</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Arial', sans-serif; }
+        
+        #ui-container {
+            position: absolute; bottom: 30px; width: 100%; text-align: center; color: white;
+            pointer-events: none; z-index: 10;
+        }
+        #greeting {
+            font-size: 2em; text-shadow: 0 0 10px rgba(255,255,255,0.8);
+            pointer-events: auto; cursor: text; display: inline-block;
+            border-bottom: 1px dashed rgba(255,255,255,0.3);
+        }
+        #instructions { font-size: 0.8em; color: #aaa; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="ui-container">
+        <div id="greeting" contenteditable="true">圣诞快乐，我的爱人</div>
+        <div id="instructions">拖动旋转 · 滚轮缩放 · 点击图片查看细节</div>
+    </div>
+
+    <script src="./three.js"></script>
+    <script src="./OrbitControls.js"></script>
+    <script src="./tween.js"></script>
+
+    <script>
+        // --- 1. 场景初始化 ---
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000000, 0.0008);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 50, 200);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        // 开启阴影支持，更有质感
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        // --- 2. 控制器 ---
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 1.0;
+
+        // --- 3. 图片加载 (重点修改部分) ---
+        // 这里填写你刚才放入文件夹的照片名字
+        const imageFiles = [
+            './1.jpg', 
+            './2.jpg', 
+            './3.jpg' 
+            // 如果你有更多照片，继续按格式添加： './4.jpg', 
+        ];
+
+        // --- 4. 生成圣诞树 ---
+        const geometry = new THREE.PlaneGeometry(16, 24);
+        const group = new THREE.Group();
+        scene.add(group);
+
+        const loader = new THREE.TextureLoader();
+
+        for (let i = 0, l = 60; i < l; i++) {
+            const phi = Math.acos(-1 + (2 * i) / l);
+            const theta = Math.sqrt(l * Math.PI) * phi;
+            const height = 180 - i * 3;
+            const radius = 10 + i * 1.5;
+
+            // 创建材质：默认是白色，加载好图片后会替换
+            const material = new THREE.MeshBasicMaterial({ 
+                color: 0xffffff,
+                side: THREE.DoubleSide 
+            });
+
+            const object = new THREE.Mesh(geometry, material);
+            object.position.set(
+                radius * Math.cos(theta),
+                height - 80,
+                radius * Math.sin(theta)
+            );
+            object.lookAt(0, object.position.y, 0);
+
+            // 加载图片
+            // 使用取模运算 (i % imageFiles.length) 来循环使用这几张照片
+            loader.load(imageFiles[i % imageFiles.length], (texture) => {
+                object.material.map = texture;
+                object.material.color.set(0xffffff); // 加载成功后设为白色以显示图片原色
+                object.material.needsUpdate = true;
+            }, undefined, (err) => {
+                // 如果图片加载失败（比如名字写错了），显示为粉色方块
+                object.material.color.set(0xff69b4); 
+            });
+
+            // 存一下原始位置，方便以后做特效
+            object.userData = { originalPos: object.position.clone() };
+            group.add(object);
+        }
+
+        // --- 5. 简单的雪花 ---
+        const pGeo = new THREE.BufferGeometry();
+        const pCount = 1000;
+        const pPos = new Float32Array(pCount * 3);
+        for(let i=0; i < pCount * 3; i++) {
+            pPos[i] = (Math.random() - 0.5) * 500;
+        }
+        pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+        const pMat = new THREE.PointsMaterial({ size: 2, color: 0xffffff, transparent: true, opacity: 0.8 });
+        const particles = new THREE.Points(pGeo, pMat);
+        scene.add(particles);
+
+        // --- 6. 交互逻辑 ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        window.addEventListener('click', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(group.children);
+
+            if (intersects.length > 0) {
+                const target = intersects[0].object;
+                controls.autoRotate = false;
+                
+                // 聚焦动画
+                const offset = target.position.clone().sub(new THREE.Vector3(0, target.position.y, 0)).normalize().multiplyScalar(40);
+                const camPos = target.position.clone().add(offset);
+
+                new TWEEN.Tween(camera.position).to({ x: camPos.x, y: camPos.y + 10, z: camPos.z }, 1000).easing(TWEEN.Easing.Quadratic.Out).start();
+                new TWEEN.Tween(controls.target).to({ x: target.position.x, y: target.position.y, z: target.position.z }, 1000).easing(TWEEN.Easing.Quadratic.Out).start();
+            } else {
+                controls.autoRotate = true;
+                new TWEEN.Tween(controls.target).to({ x: 0, y: 0, z: 0 }, 1000).start();
+            }
+        });
+
+        // --- 7. 循环 ---
+        function animate(time) {
+            requestAnimationFrame(animate);
+            TWEEN.update(time);
+            controls.update();
+            particles.rotation.y += 0.002;
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
